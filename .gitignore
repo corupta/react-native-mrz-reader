@@ -79,3 +79,6 @@ lib/
 
 # npm pack
 *.tgz
+
+
+example/ios/.xcode.env.local
