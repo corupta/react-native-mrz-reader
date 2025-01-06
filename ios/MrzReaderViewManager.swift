@@ -1,5 +1,91 @@
+import Foundation
+import React
+import SwiftUI
+import QKMRZScanner
+
 @objc(MrzReaderViewManager)
-class MrzReaderViewManager: RCTViewManager {
+class MrzReaderViewManager: RCTViewManager, QKMRZScannerViewDelegate {
+  @IBOutlet weak var mrzScannerView: QKMRZScannerView!
+  @objc var onMRZRead: RCTDirectEventBlock? = nil
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    mrzScannerView.delegate = self
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    mrzScannerView.startScanning()
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    mrzScannerView.stopScanning()
+  }
+  
+  func calcCheckDigit(_ value: String) -> String {
+    let uppercaseLetters = CharacterSet.uppercaseLetters
+    let digits = CharacterSet.decimalDigits
+    let weights = [7, 3, 1]
+    var total = 0
+    
+    for (index, character) in value.enumerated() {
+        let unicodeScalar = character.unicodeScalars.first!
+        let charValue: Int
+        
+        if uppercaseLetters.contains(unicodeScalar) {
+            charValue = Int(10 + unicodeScalar.value) - 65
+        }
+        else if digits.contains(unicodeScalar) {
+            charValue = Int(String(character))!
+        }
+        else if character == "<" {
+            charValue = 0
+        }
+        else {
+            return "<"
+        }
+        
+        total += (charValue * weights[index % 3])
+    }
+    total = total % 10
+    return String(total)
+  }
+
+  fileprivate let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyyMMdd"
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(abbreviation: "GMT+0:00")
+    return formatter
+  }()
+
+  func buildTempMrz(scanResult: QKMRZScanResult) {
+    let documentNumber = scanResult.documentNumber
+    let birthDate = dateFormatter.string(from: scanResult.birthDate).suffix(from: 2)
+    let expiryDate = dateFormatter.string(from: scanResult.expiryDate).suffix(from: 2)
+    
+    var mrz: String = "P<NNN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" +
+      documentNumber + calcCheckDigit(documentNumber) +
+      "NNN" /* nationality */ +
+      birthDate + calcCheckDigit(birthDate) +
+      "<" /* sex */ +
+      expiryDate + calcCheckDigit(expiryDate)
+      + "<<<<<<<<<<<<<<<<" /* optional data */ + "<" /* check digit for optional data */
+    mrz = mrz + calcCheckDigit(mrz) /* check digit for overall */
+    return mrz
+  }
+
+  func mrzScannerView(_ mrzScannerView: QKMRZScannerView, didFind scanResult: QKMRZScanResult) {
+    print(scanResult)
+    guard let onMRZRead = onMRZRead else {
+      return
+    }
+
+    let expiryDate = dateFormatter.string(from)
+
+    onMRZRead(buildTempMrz(scanResult))
+  }
 
   override func view() -> (MrzReaderView) {
     return MrzReaderView()
@@ -8,29 +94,24 @@ class MrzReaderViewManager: RCTViewManager {
   @objc override static func requiresMainQueueSetup() -> Bool {
     return false
   }
+
+  @objc override func supportedEvents() -> [String]! {
+    //Event names
+    return ["onMRZRead"]
+  }
 }
 
-class MrzReaderView : UIView {
+class MrzReaderView : QKMRZScannerView {
 
-  @objc var color: String = "" {
+  @objc var docType: String = "" {
     didSet {
-      self.backgroundColor = hexStringToUIColor(hexColor: color)
+      self.docType = docType
     }
   }
 
-  func hexStringToUIColor(hexColor: String) -> UIColor {
-    let stringScanner = Scanner(string: hexColor)
-
-    if(hexColor.hasPrefix("#")) {
-      stringScanner.scanLocation = 1
+  @objc var cameraSelector: String = "" {
+    didSet {
+      self.cameraSelector = cameraSelector
     }
-    var color: UInt32 = 0
-    stringScanner.scanHexInt32(&color)
-
-    let r = CGFloat(Int(color >> 16) & 0x000000FF)
-    let g = CGFloat(Int(color >> 8) & 0x000000FF)
-    let b = CGFloat(Int(color) & 0x000000FF)
-
-    return UIColor(red: r / 255.0, green: g / 255.0, blue: b / 255.0, alpha: 1)
   }
 }
