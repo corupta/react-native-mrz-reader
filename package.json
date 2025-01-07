@@ -1,5 +1,5 @@
 {
-  "name": "react-native-mrz-reader",
+  "name": "@corupta/react-native-mrz-reader",
   "version": "0.1.3",
   "description": "Reads MRZ field for React Native",
   "main": "lib/commonjs/index",
@@ -41,7 +41,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/batuhanoztrk/react-native-mrz-reader.git"
+    "url": "git+https://github.com/corupta/react-native-mrz-reader.git"
   },
   "author": "Batuhan Öztürk <batuhanoztrk@hotmail.com> (https://github.com/batuhanoztrk)",
   "contributors": [
@@ -49,9 +49,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/batuhanoztrk/react-native-mrz-reader/issues"
+    "url": "https://github.com/corupta/react-native-mrz-reader/issues"
   },
-  "homepage": "https://github.com/batuhanoztrk/react-native-mrz-reader#readme",
+  "homepage": "https://github.com/corupta/react-native-mrz-reader#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
